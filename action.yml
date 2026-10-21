@@ -1,0 +1,72 @@
+name: 'Codacy Overall Coverage Gate'
+description: >-
+  Fails the check if a repository's overall test coverage on Codacy (not
+  diff/variation coverage) is below a configured minimum percentage.
+author: 'your-org'
+
+inputs:
+  api-token:
+    description: 'Codacy account API token (sent as the api-token header). Store as a secret.'
+    required: true
+  provider:
+    description: 'Git provider identifier on Codacy: gh (GitHub), gl (GitLab), or bb (Bitbucket).'
+    required: false
+    default: 'gh'
+  organization:
+    description: 'Organization or user name as known by the Git provider / Codacy.'
+    required: true
+  repository:
+    description: 'Repository name as known by Codacy.'
+    required: true
+  commit-sha:
+    description: >-
+      Commit SHA to check overall coverage for. Defaults to the pull
+      request's head commit when run on a pull_request event, otherwise the
+      triggering commit (github.sha).
+    required: false
+    default: ''
+  min-coverage:
+    description: 'Minimum required overall repository coverage percentage (0-100).'
+    required: true
+  fail-if-no-report:
+    description: >-
+      If "true", fail when Codacy has not processed any coverage report yet
+      for the commit. If "false", the check is skipped (passes) in that case.
+    required: false
+    default: 'true'
+  max-attempts:
+    description: 'Number of times to poll Codacy while waiting for a processed coverage report.'
+    required: false
+    default: '10'
+  retry-delay-seconds:
+    description: 'Seconds to wait between polling attempts.'
+    required: false
+    default: '15'
+
+outputs:
+  coverage:
+    description: 'The overall repository coverage percentage reported by Codacy for the checked commit.'
+    value: ${{ steps.check.outputs.coverage }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: check
+      shell: bash
+      run: "${{ github.action_path }}/scripts/check-coverage.sh"
+      env:
+        CODACY_API_TOKEN: ${{ inputs.api-token }}
+        PROVIDER: ${{ inputs.provider }}
+        ORGANIZATION: ${{ inputs.organization }}
+        REPOSITORY: ${{ inputs.repository }}
+        COMMIT_SHA: ${{ inputs.commit-sha }}
+        MIN_COVERAGE: ${{ inputs.min-coverage }}
+        FAIL_IF_NO_REPORT: ${{ inputs.fail-if-no-report }}
+        MAX_ATTEMPTS: ${{ inputs.max-attempts }}
+        RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_EVENT_PATH: ${{ github.event_path }}
+
+branding:
+  icon: 'shield'
+  color: 'blue'
